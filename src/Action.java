@@ -27,49 +27,33 @@ public final class Action
         this.repeatCount = repeatCount;
     }
 
-    public static int getAnimationPeriod(Entity entity) {
-        switch (entity.kind) {
-            case DUDE_FULL:
-            case DUDE_NOT_FULL:
-            case OBSTACLE:
-            case FAIRY:
-            case SAPLING:
-            case TREE:
-                return entity.animationPeriod;
-            default:
-                throw new UnsupportedOperationException(
-                        String.format("getAnimationPeriod not supported for %s",
-                                entity.kind));
-        }
-    }
-
-    public static void executeAction(Action action, EventScheduler scheduler) {
-        switch (action.kind) {
+    public void executeAction(EventScheduler scheduler) {
+        switch (this.kind) {
             case ACTIVITY:
-                executeActivityAction(action, scheduler);
+                executeActivityAction(this, scheduler);
                 break;
 
             case ANIMATION:
-                executeAnimationAction(action, scheduler);
+                executeAnimationAction(this, scheduler);
                 break;
         }
     }
 
-    public static void executeAnimationAction(
+    private void executeAnimationAction(
             Action action, EventScheduler scheduler)
     {
         nextImage(action.entity);
 
         if (action.repeatCount != 1) {
-            EventScheduler.scheduleEvent(scheduler, action.entity,
+            scheduler.scheduleEvent(scheduler, action.entity,
                     createAnimationAction(action.entity,
                             Math.max(action.repeatCount - 1,
                                     0)),
-                    getAnimationPeriod(action.entity));
+                    scheduler.getAnimationPeriod(action.entity));
         }
     }
 
-    public static void executeActivityAction(
+    private void executeActivityAction(
             Action action, EventScheduler scheduler)
     {
         switch (action.entity.kind) {
@@ -105,98 +89,98 @@ public final class Action
         }
     }
 
-    public static void executeSaplingActivity(
+    private void executeSaplingActivity(
             Entity entity,
             WorldModel world,
             ImageStore imageStore,
             EventScheduler scheduler)
     {
         entity.health++;
-        if (!Entity.transformPlant(entity, world, scheduler, imageStore))
+        if (!entity.transformPlant(world, scheduler, imageStore))
         {
-            EventScheduler.scheduleEvent(scheduler, entity,
+            scheduler.scheduleEvent(scheduler, entity,
                     createActivityAction(entity, world, imageStore),
                     entity.actionPeriod);
         }
     }
 
-    public static void executeTreeActivity(
+    private void executeTreeActivity(
             Entity entity,
             WorldModel world,
             ImageStore imageStore,
             EventScheduler scheduler)
     {
 
-        if (!Entity.transformPlant(entity, world, scheduler, imageStore)) {
+        if (!entity.transformPlant(world, scheduler, imageStore)) {
 
-            EventScheduler.scheduleEvent(scheduler, entity,
+            scheduler.scheduleEvent(scheduler, entity,
                     createActivityAction(entity, world, imageStore),
                     entity.actionPeriod);
         }
     }
 
-    public static void executeFairyActivity(
+    private void executeFairyActivity(
             Entity entity,
             WorldModel world,
             ImageStore imageStore,
             EventScheduler scheduler)
     {
         Optional<Entity> fairyTarget =
-                WorldModel.findNearest(world, entity.position, new ArrayList<>(Arrays.asList(EntityKind.STUMP)));
+                world.findNearest(world, entity.position, new ArrayList<>(Arrays.asList(EntityKind.STUMP)));
 
         if (fairyTarget.isPresent()) {
             Point tgtPos = fairyTarget.get().position;
 
-            if (Entity.moveToFairy(entity, world, fairyTarget.get(), scheduler)) {
-                Entity sapling = Entity.createSapling("sapling_" + entity.id, tgtPos,
-                        ImageStore.getImageList(imageStore, Entity.SAPLING_KEY));
+            if (entity.moveToFairy(entity, world, fairyTarget.get(), scheduler)) {
+                Entity sapling = entity.createSapling("sapling_" + entity.id, tgtPos,
+                        imageStore.getImageList(imageStore, world.SAPLING_KEY));
 
-                WorldModel.addEntity(world, sapling);
-                EventScheduler.scheduleActions(sapling, scheduler, world, imageStore);
+                world.addEntity(world, sapling);
+                scheduler.scheduleActions(sapling, scheduler, world, imageStore);
             }
         }
 
-        EventScheduler.scheduleEvent(scheduler, entity,
+        scheduler.scheduleEvent(scheduler, entity,
                 createActivityAction(entity, world, imageStore),
                 entity.actionPeriod);
     }
 
-    public static void executeDudeNotFullActivity(
+    private void executeDudeNotFullActivity(
             Entity entity,
             WorldModel world,
             ImageStore imageStore,
             EventScheduler scheduler)
     {
         Optional<Entity> target =
-                WorldModel.findNearest(world, entity.position, new ArrayList<>(Arrays.asList(EntityKind.TREE, EntityKind.SAPLING)));
+                world.findNearest(world, entity.position, new ArrayList<>(Arrays.asList(EntityKind.TREE, EntityKind.SAPLING)));
 
-        if (!target.isPresent() || !Entity.moveToNotFull(entity, world,
+        if (!target.isPresent() || !entity.moveToNotFull(entity, world,
                 target.get(),
                 scheduler)
-                || !Entity.transformNotFull(entity, world, scheduler, imageStore))
+                || !entity.transformNotFull(world, scheduler, imageStore))
         {
-            EventScheduler.scheduleEvent(scheduler, entity,
+            scheduler.scheduleEvent(scheduler, entity,
                     createActivityAction(entity, world, imageStore),
                     entity.actionPeriod);
         }
     }
 
-    public static void executeDudeFullActivity(
+    private void executeDudeFullActivity(
             Entity entity,
             WorldModel world,
             ImageStore imageStore,
             EventScheduler scheduler)
     {
         Optional<Entity> fullTarget =
-                WorldModel.findNearest(world, entity.position, new ArrayList<>(Arrays.asList(EntityKind.HOUSE)));
+                world.findNearest(world, entity.position, new ArrayList<>(Arrays.asList(EntityKind.HOUSE)));
 
-        if (fullTarget.isPresent() && Entity.moveToFull(entity, world,
+        if (fullTarget.isPresent() && entity.moveToFull(entity, world,
                 fullTarget.get(), scheduler))
         {
-            Entity.transformFull(entity, world, scheduler, imageStore);
+            entity.transformFull(world, scheduler, imageStore);
         }
         else {
-            EventScheduler.scheduleEvent(scheduler, entity,
+            scheduler.scheduleEvent(scheduler, entity,
                     createActivityAction(entity, world, imageStore),
                     entity.actionPeriod);
         }
@@ -213,7 +197,7 @@ public final class Action
         return new Action(ActionKind.ACTIVITY, entity, world, imageStore, 0);
     }
 
-    private static void nextImage(Entity entity) {
+    private void nextImage(Entity entity) {
         entity.imageIndex = (entity.imageIndex + 1) % entity.images.size();
     }
 }

@@ -5,9 +5,9 @@ import java.util.*;
  */
 public final class EventScheduler
 {
-    public PriorityQueue<Event> eventQueue;
-    public Map<Entity, List<Event>> pendingEvents;
-    public double timeScale;
+    private PriorityQueue<Event> eventQueue;
+    private Map<Entity, List<Event>> pendingEvents;
+    private double timeScale;
 
     public EventScheduler(double timeScale) {
         this.eventQueue = new PriorityQueue<>(new EventComparator());
@@ -15,17 +15,33 @@ public final class EventScheduler
         this.timeScale = timeScale;
     }
 
-    public static void removePendingEvent(
-            EventScheduler scheduler, Event event)
+    public static int getAnimationPeriod(Entity entity) {
+        switch (entity.kind) {
+            case DUDE_FULL:
+            case DUDE_NOT_FULL:
+            case OBSTACLE:
+            case FAIRY:
+            case SAPLING:
+            case TREE:
+                return entity.animationPeriod;
+            default:
+                throw new UnsupportedOperationException(
+                        String.format("getAnimationPeriod not supported for %s",
+                                entity.kind));
+        }
+    }
+
+    private void removePendingEvent(
+            Event event)
     {
-        List<Event> pending = scheduler.pendingEvents.get(event.entity);
+        List<Event> pending = this.pendingEvents.get(event.entity);
 
         if (pending != null) {
             pending.remove(event);
         }
     }
 
-    public static void unscheduleAllEvents(
+    public void unscheduleAllEvents(
             EventScheduler scheduler, Entity entity)
     {
         List<Event> pending = scheduler.pendingEvents.remove(entity);
@@ -37,7 +53,7 @@ public final class EventScheduler
         }
     }
 
-    public static void scheduleEvent(
+    public void scheduleEvent(
             EventScheduler scheduler,
             Entity entity,
             Action action,
@@ -56,18 +72,18 @@ public final class EventScheduler
         scheduler.pendingEvents.put(entity, pending);
     }
 
-    public static void updateOnTime(EventScheduler scheduler, long time) {
-        while (!scheduler.eventQueue.isEmpty()
-                && scheduler.eventQueue.peek().time < time) {
-            Event next = scheduler.eventQueue.poll();
+    public void updateOnTime(long time) {
+        while (!this.eventQueue.isEmpty()
+                && this.eventQueue.peek().time < time) {
+            Event next = this.eventQueue.poll();
 
-            removePendingEvent(scheduler, next);
+            removePendingEvent(next);
 
-            Action.executeAction(next.action, scheduler);
+            next.action.executeAction(this);
         }
     }
 
-    public static void scheduleActions(
+    public void scheduleActions(
             Entity entity,
             EventScheduler scheduler,
             WorldModel world,
@@ -80,7 +96,7 @@ public final class EventScheduler
                         entity.actionPeriod);
                 scheduleEvent(scheduler, entity,
                         Action.createAnimationAction(entity, 0),
-                        Action.getAnimationPeriod(entity));
+                        scheduler.getAnimationPeriod(entity));
                 break;
 
             case DUDE_NOT_FULL:
@@ -89,13 +105,13 @@ public final class EventScheduler
                         entity.actionPeriod);
                 scheduleEvent(scheduler, entity,
                         Action.createAnimationAction(entity, 0),
-                        Action.getAnimationPeriod(entity));
+                        scheduler.getAnimationPeriod(entity));
                 break;
 
             case OBSTACLE:
                 scheduleEvent(scheduler, entity,
                         Action.createAnimationAction(entity, 0),
-                        Action.getAnimationPeriod(entity));
+                        scheduler.getAnimationPeriod(entity));
                 break;
 
             case FAIRY:
@@ -104,7 +120,7 @@ public final class EventScheduler
                         entity.actionPeriod);
                 scheduleEvent(scheduler, entity,
                         Action.createAnimationAction(entity, 0),
-                        Action.getAnimationPeriod(entity));
+                        scheduler.getAnimationPeriod(entity));
                 break;
 
             case SAPLING:
@@ -113,7 +129,7 @@ public final class EventScheduler
                         entity.actionPeriod);
                 scheduleEvent(scheduler, entity,
                         Action.createAnimationAction(entity, 0),
-                        Action.getAnimationPeriod(entity));
+                        scheduler.getAnimationPeriod(entity));
                 break;
 
             case TREE:
@@ -122,7 +138,7 @@ public final class EventScheduler
                         entity.actionPeriod);
                 scheduleEvent(scheduler, entity,
                         Action.createAnimationAction(entity, 0),
-                        Action.getAnimationPeriod(entity));
+                        scheduler.getAnimationPeriod(entity));
                 break;
 
             default:

@@ -7,41 +7,41 @@ import processing.core.*;
 
 public final class VirtualWorld extends PApplet
 {
-    public static final int TIMER_ACTION_PERIOD = 100;
+    private final int TIMER_ACTION_PERIOD = 100;
 
-    public static final int VIEW_WIDTH = 640;
-    public static final int VIEW_HEIGHT = 480;
-    public static final int TILE_WIDTH = 32;
-    public static final int TILE_HEIGHT = 32;
-    public static final int WORLD_WIDTH_SCALE = 2;
-    public static final int WORLD_HEIGHT_SCALE = 2;
+    private final int VIEW_WIDTH = 640;
+    private final int VIEW_HEIGHT = 480;
+    private final int TILE_WIDTH = 32;
+    private final int TILE_HEIGHT = 32;
+    private final int WORLD_WIDTH_SCALE = 2;
+    private final int WORLD_HEIGHT_SCALE = 2;
 
-    public static final int VIEW_COLS = VIEW_WIDTH / TILE_WIDTH;
-    public static final int VIEW_ROWS = VIEW_HEIGHT / TILE_HEIGHT;
-    public static final int WORLD_COLS = VIEW_COLS * WORLD_WIDTH_SCALE;
-    public static final int WORLD_ROWS = VIEW_ROWS * WORLD_HEIGHT_SCALE;
+    private final int VIEW_COLS = VIEW_WIDTH / TILE_WIDTH;
+    private final int VIEW_ROWS = VIEW_HEIGHT / TILE_HEIGHT;
+    private final int WORLD_COLS = VIEW_COLS * WORLD_WIDTH_SCALE;
+    private final int WORLD_ROWS = VIEW_ROWS * WORLD_HEIGHT_SCALE;
 
-    public static final String IMAGE_LIST_FILE_NAME = "imagelist";
-    public static final String DEFAULT_IMAGE_NAME = "background_default";
-    public static final int DEFAULT_IMAGE_COLOR = 0x808080;
+    private final String IMAGE_LIST_FILE_NAME = "imagelist";
+    private final String DEFAULT_IMAGE_NAME = "background_default";
+    private final int DEFAULT_IMAGE_COLOR = 0x808080;
 
-    public static String LOAD_FILE_NAME = "world.sav";
+    private String LOAD_FILE_NAME = "world.sav";
 
-    public static final String FAST_FLAG = "-fast";
-    public static final String FASTER_FLAG = "-faster";
-    public static final String FASTEST_FLAG = "-fastest";
-    public static final double FAST_SCALE = 0.5;
-    public static final double FASTER_SCALE = 0.25;
-    public static final double FASTEST_SCALE = 0.10;
+    private static final String FAST_FLAG = "-fast";
+    private static final String FASTER_FLAG = "-faster";
+    private static final String FASTEST_FLAG = "-fastest";
+    private static final double FAST_SCALE = 0.5;
+    private static final double FASTER_SCALE = 0.25;
+    private static final double FASTEST_SCALE = 0.10;
 
-    public static double timeScale = 1.0;
+    private static double timeScale = 1.0;
 
-    public ImageStore imageStore;
-    public WorldModel world;
-    public WorldView view;
-    public EventScheduler scheduler;
+    private ImageStore imageStore;
+    private WorldModel world;
+    private WorldView view;
+    private EventScheduler scheduler;
 
-    public long nextTime;
+    private long nextTime;
 
     public void settings() {
         size(VIEW_WIDTH, VIEW_HEIGHT);
@@ -71,11 +71,11 @@ public final class VirtualWorld extends PApplet
     public void draw() {
         long time = System.currentTimeMillis();
         if (time >= nextTime) {
-            EventScheduler.updateOnTime(this.scheduler, time);
+            this.scheduler.updateOnTime(time);
             nextTime = time + TIMER_ACTION_PERIOD;
         }
 
-        WorldView.drawViewport(view);
+        this.view.drawViewport(view);
     }
 
     // Just for debugging and for P5
@@ -83,7 +83,7 @@ public final class VirtualWorld extends PApplet
         Point pressed = mouseToPoint(mouseX, mouseY);
         System.out.println("CLICK! " + pressed.x + ", " + pressed.y);
 
-        Optional<Entity> entityOptional = WorldModel.getOccupant(world, pressed);
+        Optional<Entity> entityOptional = this.world.getOccupant(world, pressed);
         if (entityOptional.isPresent())
         {
             Entity entity = entityOptional.get();
@@ -94,7 +94,7 @@ public final class VirtualWorld extends PApplet
 
     private Point mouseToPoint(int x, int y)
     {
-        return Viewport.viewportToWorld(view.viewport, mouseX/TILE_WIDTH, mouseY/TILE_HEIGHT);
+        return this.view.viewportToWorld(view.viewport, mouseX/TILE_WIDTH, mouseY/TILE_HEIGHT);
     }
     public void keyPressed() {
         if (key == CODED) {
@@ -115,17 +115,16 @@ public final class VirtualWorld extends PApplet
                     dx = 1;
                     break;
             }
-            WorldView.shiftView(view, dx, dy);
+            this.view.shiftView(view, dx, dy);
         }
     }
 
-    public static Background createDefaultBackground(ImageStore imageStore) {
+    public Background createDefaultBackground(ImageStore imageStore) {
         return new Background(DEFAULT_IMAGE_NAME,
-                              ImageStore.getImageList(imageStore,
-                                                     DEFAULT_IMAGE_NAME));
+                              imageStore.getImageList(imageStore, DEFAULT_IMAGE_NAME));
     }
 
-    public static PImage createImageColored(int width, int height, int color) {
+    public PImage createImageColored(int width, int height, int color) {
         PImage img = new PImage(width, height, RGB);
         img.loadPixels();
         for (int i = 0; i < img.pixels.length; i++) {
@@ -135,35 +134,35 @@ public final class VirtualWorld extends PApplet
         return img;
     }
 
-    static void loadImages(
+    void loadImages(
             String filename, ImageStore imageStore, PApplet screen)
     {
         try {
             Scanner in = new Scanner(new File(filename));
-            ImageStore.loadImages(in, imageStore, screen);
+            imageStore.loadImages(in, screen);
         }
         catch (FileNotFoundException e) {
             System.err.println(e.getMessage());
         }
     }
 
-    public static void loadWorld(
+    public void loadWorld(
             WorldModel world, String filename, ImageStore imageStore)
     {
         try {
             Scanner in = new Scanner(new File(filename));
-            WorldModel.load(in, world, imageStore);
+            world.load(in, world, imageStore);
         }
         catch (FileNotFoundException e) {
             System.err.println(e.getMessage());
         }
     }
 
-    public static void scheduleActions(
+    public void scheduleActions(
             WorldModel world, EventScheduler scheduler, ImageStore imageStore)
     {
         for (Entity entity : world.entities) {
-            EventScheduler.scheduleActions(entity, scheduler, world, imageStore);
+            scheduler.scheduleActions(entity, scheduler, world, imageStore);
         }
     }
 
